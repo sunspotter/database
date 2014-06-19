@@ -1,5 +1,10 @@
 import datetime
 
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean,\
+    ForeignKey
+from sqlalchemy.orm import relationship
+
 def _convert_bool(s): 
     '''
     Function to be just used here!!
@@ -8,11 +13,7 @@ def _convert_bool(s):
         return True; 
     return False
 
-from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
-
-from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean,\
-    ForeignKey
 
 class User(Base):
     __tablename__ = 'user'
@@ -65,7 +66,9 @@ class Classification(Base):
     date_started = Column(DateTime)
     date_finished = Column(DateTime)
     date_created = Column(DateTime)
-    
+
+    user = relationship('User', backref = 'users')
+
     def __repr__(self):
         return "<Classification {image0} {direction} {image1} by {user}>".format(
             image0=self.image_id_0,
@@ -86,6 +89,8 @@ class ZooRank(Base):
     area = Column(Float)  # is this AR or rank?
     areafrac = Column(Float)
     areathesh = Column(Float)
+    
+    image = relationship('Images', backref = 'images')
 
     def __repr__(self):
         return "<ZooRank {image}:{score:.2f}>".format(image=self.image_id,
@@ -103,57 +108,57 @@ session = Session(bind=engine)
 file_ranking = '2014-03-29_sunspot_rankings.csv'
 file_classification = '2014-03-29_sunspot_classifications.csv'
 
-# # 1st ingesting ranking file (it contains images info and ranking)
-# with open(file_ranking, 'r') as rank_file:
-#     for line in rank_file:
-#         if line[0] == '"':
-#             line_list = line.replace('"','').\
-#                 replace('[','').replace(']','').split(',')
+# 1st ingesting ranking file (it contains images info and ranking)
+with open(file_ranking, 'r') as rank_file:
+    for line in rank_file:
+        if line[0] == '"':
+            line_list = line.replace('"','').\
+                replace('[','').replace(']','').split(',')
 
-#             # list positions obtained from:
-#             # a = '"image","zooniverse_id","count","k","score","std_dev","angle","area","areafrac","areathesh","bipolesep","c1flr24hr","date","filename","flux","fluxfrac","hale","hcpos","m1flr12hr","m5flr12hr","n_nar","noaa","pxpos","sszn","zurich"'
-#             # alist = a.replace('hcpos','hcposx,hcposy').replace('pxpos','pxposx,pxposy').replace('"','').replace('[','').replace(']','').split(',')
-#             # for i,elem in enumerate(alist):
-#             #    print "{0:2d}: {1}".format(i, elem)
+            # list positions obtained from:
+            # a = '"image","zooniverse_id","count","k","score","std_dev","angle","area","areafrac","areathesh","bipolesep","c1flr24hr","date","filename","flux","fluxfrac","hale","hcpos","m1flr12hr","m5flr12hr","n_nar","noaa","pxpos","sszn","zurich"'
+            # alist = a.replace('hcpos','hcposx,hcposy').replace('pxpos','pxposx,pxposy').replace('"','').replace('[','').replace(']','').split(',')
+            # for i,elem in enumerate(alist):
+            #    print "{0:2d}: {1}".format(i, elem)
 
-#             #Convert date_obs to datetime
-#             date_obs = datetime.datetime.strptime(line_list[12], 
-#                                                   '%Y-%m-%dT%H:%M:%SZ')
+            #Convert date_obs to datetime
+            date_obs = datetime.datetime.strptime(line_list[12], 
+                                                  '%Y-%m-%dT%H:%M:%SZ')
 
-#             image = Images(filename=line_list[13],
-#                           sszn=line_list[25],
-#                           hale=line_list[16],
-#                           zurich=line_list[26],
-#                           ars_n=line_list[21],
-#                           obs_date=date_obs,
-#                           url=line_list[0],
-#                           noaa_n=line_list[22],
-#                           bipolesep=line_list[10],
-#                           flux=line_list[14],
-#                           flux_frac=line_list[15],
-#                           hcpos_x=line_list[17],
-#                           hcpos_y=line_list[18],
-#                           pxpos_x=line_list[23],
-#                           pxpos_y=line_list[24],
-#                           c1flr24h=_convert_bool(line_list[11]),
-#                           m1flr24h=_convert_bool(line_list[19]),
-#                           m5flr12h=_convert_bool(line_list[20]),
-#                           )
-#             session.add(image)
-#             session.commit()
+            image = Images(filename=line_list[13],
+                          sszn=line_list[25],
+                          hale=line_list[16],
+                          zurich=line_list[26],
+                          ars_n=line_list[21],
+                          obs_date=date_obs,
+                          url=line_list[0],
+                          noaa_n=line_list[22],
+                          bipolesep=line_list[10],
+                          flux=line_list[14],
+                          flux_frac=line_list[15],
+                          hcpos_x=line_list[17],
+                          hcpos_y=line_list[18],
+                          pxpos_x=line_list[23],
+                          pxpos_y=line_list[24],
+                          c1flr24h=_convert_bool(line_list[11]),
+                          m1flr24h=_convert_bool(line_list[19]),
+                          m5flr12h=_convert_bool(line_list[20]),
+                          )
+            session.add(image)
 
-#             rank = ZooRank(image_id=image.id,
-#                            count=line_list[2],
-#                            k_value=line_list[3],
-#                            score=line_list[4],
-#                            std_dev=line_list[5],
-#                            angle=line_list[6],
-#                            area=line_list[7],
-#                            areafrac=line_list[8],
-#                            areathesh=line_list[9],
-#                            )
-#             session.add(rank)
-#             session.commit()
+            rank = ZooRank(count=line_list[2],
+                           k_value=line_list[3],
+                           score=line_list[4],
+                           std_dev=line_list[5],
+                           angle=line_list[6],
+                           area=line_list[7],
+                           areafrac=line_list[8],
+                           areathesh=line_list[9],
+                           image=image
+                           )
+            session.add(rank)
+
+session.commit()
             
 
 # Add the users and the classifications from the second file
@@ -164,22 +169,24 @@ with open(file_classification, 'r') as classif_file:
             
             user = User(username=line_list[3])
 
-            # Check whether this user is already in the db
-            query = session.query(User).filter(User.username == user.username).all()
-            if not query:
+            # Check whether this user is already in the db (Thanks Derdon!)
+            (ret,), = self.session.query(exists().where(
+                    User.username == user.username))
+
+            if not ret:
                 session.add(user)
-                session.commit()
+                #session.commit()
             else:
                 user.id = query[0].id
 
             # Query for the images
-            image0 = session.query(Images).filter(Images.filename == line_list[6]).all()[0]
-            image1 = session.query(Images).filter(Images.filename == line_list[12]).all()[0]
+            image0 = session.query(Images).filter(Images.filename == line_list[6]).first()
+            image1 = session.query(Images).filter(Images.filename == line_list[12]).first()
             try: # Some are not selected
-                complexity = True if int(line_list[17]) == 0 else False
-            except:
+                complexity = int(line_list[17]) == 0
+            except ValueError:
                 complexity = None
-            inverted = True if line_list[18] == 'true' else False
+            inverted = line_list[18] == 'true'
 
             # "Wed, 26 Feb 2014 20:13:59 GMT" - carefull, day of the week
             # becomes as part of the column before. Also, replaced the GMT or UTC out of it
@@ -191,8 +198,7 @@ with open(file_classification, 'r') as classif_file:
             date_created =  datetime.datetime.strptime(line_list[1],
                                                        '%Y-%m-%d %H:%M:%S ')
 
-            classification = Classification(user_id = user.id,
-                                            image_id_0=image0.id,
+            classification = Classification(image_id_0=image0.id,
                                             image_id_1=image1.id,
                                             image0_more_complex_image1=complexity,
                                             used_inverted=inverted,
@@ -200,8 +206,8 @@ with open(file_classification, 'r') as classif_file:
                                             date_started=date_started,
                                             date_finished=date_finished,
                                             date_created=date_created, 
+                                            user=user
                                             )
             session.add(classification)
-            session.commit()
 
 
