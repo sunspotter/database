@@ -1,5 +1,6 @@
 import datetime
 
+from sqlalchemy import create_engine, exists
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean,\
     ForeignKey
@@ -97,7 +98,6 @@ class ZooRank(Base):
                                                       score=self.score)
 
 
-from sqlalchemy import create_engine
 engine = create_engine('sqlite:///sunspotter.db')
 Base.metadata.create_all(engine)
 
@@ -111,7 +111,7 @@ file_classification = '2014-03-29_sunspot_classifications.csv'
 # 1st ingesting ranking file (it contains images info and ranking)
 with open(file_ranking, 'r') as rank_file:
     for line in rank_file:
-        if line[0] == '"':
+        if line[0] == '"' and line[1] != 'i':
             line_list = line.replace('"','').\
                 replace('[','').replace(']','').split(',')
 
@@ -160,24 +160,33 @@ with open(file_ranking, 'r') as rank_file:
 
 session.commit()
             
+def create_or_get_user(user_name):
+    (ret,), = session.query(exists().where(User.username == user_name))
+    if not ret:
+        obj = User(username = user_name)
+        session.add(obj)
+    else:
+        obj = session.query(User).filter(User.username == user_name).first()
+    return obj
+
 
 # Add the users and the classifications from the second file
 with open(file_classification, 'r') as classif_file:
     for line in classif_file:
-        if line[0] == '"':
+        if line[0] == '"' and line[1:4] != 'cla':
             line_list = line.replace('"','').replace('GMT',',').replace('UTC',',').split(',')
             
-            user = User(username=line_list[3])
+            #user = User(username=line_list[3])
 
             # Check whether this user is already in the db (Thanks Derdon!)
-            (ret,), = self.session.query(exists().where(
-                    User.username == user.username))
+            #(ret,), = session.query(exists().where(
+            #        User.username == user.username))
 
-            if not ret:
-                session.add(user)
+            #if not ret:
+            #    session.add(user)
                 #session.commit()
-            else:
-                user.id = query[0].id
+            #else:
+            #    user.id = query[0].id
 
             # Query for the images
             image0 = session.query(Images).filter(Images.filename == line_list[6]).first()
@@ -206,8 +215,9 @@ with open(file_classification, 'r') as classif_file:
                                             date_started=date_started,
                                             date_finished=date_finished,
                                             date_created=date_created, 
-                                            user=user
+                                            user=create_or_get_user(line_list[3])
                                             )
             session.add(classification)
 
+session.commit()
 
