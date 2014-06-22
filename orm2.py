@@ -199,22 +199,20 @@ with open(file_ranking, 'r') as rank_file:
 
             
 def create_or_get_user(user_name):
-    (ret,), = session.query(exists().where(User.username == user_name))
-    if not ret:
+    obj = session.query(User).filter(User.username == user_name).first()
+    if not obj:
         obj = User(username = user_name)
         session.add(obj)
-    else:
-        obj = session.query(User).filter(User.username == user_name).first()
     return obj
 
 def create_or_get_image(url):
-    (ret,), = session.query(exists().where(Images.url == url))
+    ret = session.query(Images.id).filter(Images.url == url).first()
     if not ret:
         obj = Images(url=url)
         session.add(obj)
-    else:
-        obj = session.query(Images).filter(Images.url == url).first()
-    return obj
+        session.commit()
+        ret = [obj.id]
+    return ret[0]
 
 
 
@@ -238,8 +236,8 @@ with open(file_classification, 'r') as classif_file:
             #    user.id = query[0].id
 
             # Query for the images
-            image0 = create_or_get_image(line_list[4])
-            image1 = create_or_get_image(line_list[8])
+            image0_id = create_or_get_image(line_list[4])
+            image1_id = create_or_get_image(line_list[8])
             try: # Some are not selected
                 complexity = int(line_list[12]) == 0
             except ValueError:
@@ -256,8 +254,8 @@ with open(file_classification, 'r') as classif_file:
             date_created =  datetime.datetime.strptime(line_list[1],
                                                        '%Y-%m-%d %H:%M:%S ')
 
-            classification = Classification(image_id_0=image0.id,
-                                            image_id_1=image1.id,
+            classification = Classification(image_id_0=image0_id,
+                                            image_id_1=image1_id,
                                             image0_more_complex_image1=complexity,
                                             used_inverted=inverted,
                                             language=line_list[14],
