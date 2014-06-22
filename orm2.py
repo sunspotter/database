@@ -71,8 +71,8 @@ class Images(Base):
     
 
     def __repr__(self):
-        return "<Image {noaa}[{hcx:.2f}{hcy:.2f}]@{date}:{url}>".format(
-            noaa=self.noaa_n, 
+        return "<Image {zoo}[{hcx:.2f}{hcy:.2f}]@{date}:{url}>".format(
+            zoo=self.zoo_id, 
             hcx=self.hcpos_x,
             hcy=self.hcpos_y,
             date=self.obs_date,
@@ -129,7 +129,7 @@ session = Session(bind=engine)
 
 # INGESTING DATA
 file_ranking = '2014-06-15_sunspot_rankings.csv'
-file_classification = '2014-06-15_sunspot_classifications.csv'
+file_classification = '2014-06-15_sunspot_classifications_awk.csv'
 
 print("Starting with the images")
 # 1st ingesting ranking file (it contains images info and ranking)
@@ -207,6 +207,16 @@ def create_or_get_user(user_name):
         obj = session.query(User).filter(User.username == user_name).first()
     return obj
 
+def create_or_get_image(url):
+    (ret,), = session.query(exists().where(Images.url == url))
+    if not ret:
+        obj = Images(url=url)
+        session.add(obj)
+    else:
+        obj = session.query(Images).filter(Images.url == url).first()
+    return obj
+
+
 
 print("Images and it's ranking added to the database.")
 # Add the users and the classifications from the second file
@@ -228,8 +238,8 @@ with open(file_classification, 'r') as classif_file:
             #    user.id = query[0].id
 
             # Query for the images
-            image0 = session.query(Images).filter(Images.url == line_list[4]).first()
-            image1 = session.query(Images).filter(Images.url == line_list[8]).first()
+            image0 = create_or_get_image(line_list[4])
+            image1 = create_or_get_image(line_list[8])
             try: # Some are not selected
                 complexity = int(line_list[12]) == 0
             except ValueError:
@@ -257,6 +267,6 @@ with open(file_classification, 'r') as classif_file:
                                             user=create_or_get_user(line_list[3])
                                             )
             session.add(classification)
+            session.commit()
 
-session.commit()
 
