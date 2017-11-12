@@ -170,5 +170,18 @@ sqlite3 sunspotter.sqlite3 < ${DIR}/create_tables.sql
 duration=$(( SECONDS - start ))
 echo "Insert data into the sqlite database took $duration seconds"
 
+########### 11 Create square plot
+start=$SECONDS
+sqlite3 sunspotter.sqlite3 <<EOF
+.headers on
+.mode csv
+.output amount_user.csv
+select u.username, count(*) as total from classification as c inner join user as u on u.id = c.user_id group by c.user_id order by total desc;
+EOF
+duration=$(( SECONDS - start ))
+echo "Query db took $duration seconds"
+
+python ${DIR}/square.py amount_user.csv
+
 duration=$(( SECONDS - master_start ))
 echo "The whole script took $duration seconds"
